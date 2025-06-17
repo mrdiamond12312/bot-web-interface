@@ -1,0 +1,158 @@
+/**
+ * Created by Nexus on 30.07.2017.
+ */
+
+var BotUi = function (id, structure, parent, attachTarget) {
+    this.id = id;
+    this.structure = structure;
+    this.parent = parent ? parent : null;
+    this.children = [];
+    this.attachTarget = attachTarget ? attachTarget : null;
+    this.element = null;
+};
+
+BotUi.prototype.destroy = function () {
+    if(this.element.parentNode)
+        this.element.parentNode.removeChild(this.element);
+};
+
+BotUi.prototype.create = function () {
+    var element = document.createElement("div");
+    element.className = "box";
+    var html = "";
+    for (var i in this.structure) {
+        var name = this.structure[i].name;
+        var label = this.structure[i].label;
+        var type = this.structure[i].type;
+        var options = this.structure[i].options;
+        switch (type) {
+            case "text":
+                if (!options)
+                    options = {
+                        value_foreground: "white"
+                    };
+                html += "<div class='" + name + " textDisplay boxRow'><div class='textDisplayLabel'>" + label + ": </div><div class='textDisplayValue' style='color: " + options.value_foreground + "; float:right'></div></div>";
+                break;
+            case "progressBar":
+                if (!options)
+                    options = {
+                        color: "green"
+                    };
+                html += "<div class='" + name + " progressBarDisplay boxRow'>  <div class='border'><div class='bar' style='background-color: " + options.color + "'> </div> <div class='bar--pseudo' style='background-color: " + options.color + "'> </div> <div class='barLabel'>" + label + ": <div class='value'>0%</div></div>  </div>  </div>";
+                break;
+                case "labelProgressBar":
+                    if (!options)
+                        options = {
+                            color: "green"
+                        };
+                    html += "<div class='" + name + " progressBarDisplay boxRow'>  <div class='border'><div class='bar' style='background-color: " + options.color + "'> </div> <div class='bar--pseudo' style='background-color: " + options.color + "'> </div> <div class='barLabel'>" + label + ": <div class='value'>0%</div></div>  </div>  </div>";
+                    break;
+            case "image":
+                if (!options) {
+                    options = {
+                        width: 200,
+                        height: 200
+                    };
+                }
+                html += "<div class='" + name + " imageDisplay boxRow'> <img src='' style='width:" + options.width + "px;height:" + options.height + "px;'/> </div>";
+                break;
+            case "graph":
+                //TODO implement later
+                break;
+            case "button":
+                if (!options) {
+                    options = {
+                        width: 200,
+                        height: 200
+                    };
+                }
+                html += "<div class='" + name + " imageDisplay boxRow'> <img src='' style='width:" + options.width + "px;height:" + options.height + "px;'/> </div>";
+                break;
+            case "botUI":
+                html += "<div class='" + name + " subBotUI boxRow'></div>";
+                break;
+
+        }
+    }
+    element.innerHTML = html;
+    this.element = element;
+    if (this.parent) {
+        this.parent.children.push(this);
+        let container = this.parent.element.getElementsByClassName("subBotUI " + this.attachTarget)[0];
+        container.appendChild(element);
+    } else {
+        let container = document.getElementsByClassName("botUIContainer")[0];
+        container.appendChild(element);
+    }
+};
+
+/**
+ * Updates html object with data object
+ */
+BotUi.prototype.render = function () {
+    if (!this.data)
+        return;
+
+    for (let i in this.structure) {
+        const name = this.structure[i].name;
+        const type = this.structure[i].type;
+        const oldValue = this.oldData[name];
+        const value = this.data[name];
+        if (value === undefined)
+            continue;
+        const row = this.element.getElementsByClassName(name)[0];
+        switch (type) {
+            case "text":
+                row.getElementsByClassName("textDisplayValue")[0].innerHTML = value;
+                break;
+            case "progressBar":
+                row.getElementsByClassName("bar")[0].style.width = value + "%";
+                row.getElementsByClassName("bar--pseudo")[0].style.width = value + "%";
+                row.getElementsByClassName("value")[0].innerHTML = value + "%";
+                if (value > oldValue) {
+                    row.getElementsByClassName("bar")[0].style.transitionDuration = "600ms";
+                    row.getElementsByClassName("bar--pseudo")[0].style.transitionDuration = "50ms"
+                }
+                else {
+                    row.getElementsByClassName("bar--pseudo")[0].style.transitionDuration = "600ms";
+                    row.getElementsByClassName("bar")[0].style.transitionDuration = "50ms"
+                }
+                break;
+            case "labelProgressBar":
+                row.getElementsByClassName("bar")[0].style.width = value[0] + "%";
+                row.getElementsByClassName("bar--pseudo")[0].style.width = value[0] + "%";
+                row.getElementsByClassName("value")[0].innerHTML = value[1];
+                if (value[0] > oldValue[0]) {
+                    row.getElementsByClassName("bar")[0].style.transitionDuration = "600ms";
+                    row.getElementsByClassName("bar--pseudo")[0].style.transitionDuration = "50ms"
+                }
+                else {
+                    row.getElementsByClassName("bar--pseudo")[0].style.transitionDuration = "600ms";
+                    row.getElementsByClassName("bar")[0].style.transitionDuration = "50ms"
+                }
+                break;
+            case "image":
+                row.getElementsByTagName("img")[0].src = value;
+                break;
+            case "graph":
+                //TODO implement later
+                break;
+            case "botUI":
+                break;
+        }
+    }
+};
+/**
+ * Updates bot data
+ */
+BotUi.prototype.update = function (data) {
+    this.oldData = this.data ?? data;
+    this.data = data;
+    this.render();
+};
+
+BotUi.prototype.updateProperty = function (name, value) {
+    this.oldData[name] = this.data[name] ?? value;
+    this.data[name] = value;
+    this.render();
+};
